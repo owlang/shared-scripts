@@ -1,0 +1,11 @@
+accession	md5sum	assembly	mapped_run_type	FQ1	FQ2	mapped_read_length	output_category	output_type	platform	ENCSR	strain	assay_title	target
+ENCFF671SGF	f798459388e12c0880cab614dcab112f	hg19	single-ended	ENCFF000QED	None	36	alignment	alignments	Illumina Genome Analyzer IIx	/experiments/ENCSR000BGW/	/biosample-types/cell_line_EFO_0002067/	TF ChIP-seq	/targets/SPI1-human/
+ENCFF994DIZ	4e1fedd787648b22b4dc76fa0ae2e777	hg19	single-ended	ENCFF000QED	None	36	alignment	unfiltered alignments	Illumina Genome Analyzer IIx	/experiments/ENCSR000BGW/	/biosample-types/cell_line_EFO_0002067/	TF ChIP-seq	/targets/SPI1-human/
+ENCFF297DVT	2765057dd6e8b9b6d938a132f49ab3ae	hg19	single-ended	ENCFF000QEG	None	36	alignment	alignments	Illumina Genome Analyzer IIx	/experiments/ENCSR000BGW/	/biosample-types/cell_line_EFO_0002067/	TF ChIP-seq	/targets/SPI1-human/
+ENCFF690CVM	3417efd36fa133b2a2b77c652c9bd7e8	hg19	single-ended	ENCFF000QEG	None	36	alignment	unfiltered alignments	Illumina Genome Analyzer IIx	/experiments/ENCSR000BGW/	/biosample-types/cell_line_EFO_0002067/	TF ChIP-seq	/targets/SPI1-human/
+ENCFF507UHD	8a39542bebe38cbb816c7507bcb0bf99	hg19	paired-ended	None	None	36	alignment	alignments	None	/experiments/ENCSR137EEM/	/biosample-types/cell_line_EFO_0002067/	GM DNase-seq	None
+ENCFF851ZQS	a83965bf0c0022cfd685f30144f865bc	hg19	paired-ended	None	None	36	alignment	alignments	None	/experiments/ENCSR064EFK/	/biosample-types/cell_line_EFO_0002067/	GM DNase-seq	None
+ENCFF270JMP	f7c1d3d34d8774e5f2a29c2417da085f	hg19	paired-ended	None	None	36	alignment	alignments	None	/experiments/ENCSR374YBC/	/biosample-types/cell_line_EFO_0002067/	GM DNase-seq	None
+ENCFF472WZC	f1403a8f1dd84daae2041306d06e66f1	hg19	paired-ended	ENCFF505MDH	ENCFF189JFF	36	alignment	unfiltered alignments	Illumina HiSeq 2500	/experiments/ENCSR137EEM/	/biosample-types/cell_line_EFO_0002067/	GM DNase-seq	None
+ENCFF295QRJ	e6d9ca17f5ff14d052a32ed102ea37b1	hg19	paired-ended	ENCFF017QTE	ENCFF715JWI	36	alignment	unfiltered alignments	Illumina HiSeq 2000	/experiments/ENCSR064EFK/	/biosample-types/cell_line_EFO_0002067/	GM DNase-seq	None
+ENCFF065QTO	d9f7ce47af1f70e1231df5d547312bf6	hg19	paired-ended	ENCFF771AEZ	ENCFF440YCI	36	alignment	unfiltered alignments	Illumina HiSeq 2000	/experiments/ENCSR374YBC/	/biosample-types/cell_line_EFO_0002067/	GM DNase-seq	None
