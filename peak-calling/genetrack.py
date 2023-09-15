@@ -1,23 +1,21 @@
-# genetrack.py
+# genetrack_v2.py
 #
 # Peak calling script
-#
-# By Pindi Albert, 2011
-#
-# DEPENDENCY: chrtrans.py must be in same directory
+# 
+# Original by Pindi Albert, 2011
+# Modified by William Lai, 2019
 #
 # Input: either idx or gff format of reads
 # .idx format: tab-separated chromosome (chr##), index, + reads, - reads
 # .gff format: standard gff, score interpreted as number of reads
 #
-# Output: Called peaks in either gff or txt format
-# .txt format: tab-separated chromosome, strand, start, end, read count
+# Output: Called peaks in gff format
 # .gff format: standard gff, score is read count
 #
 # Run with no arguments or -h for usage and command line options
 
 from optparse import OptionParser, IndentedHelpFormatter
-import csv, logging, numpy, math, bisect, sys, os, copy
+import csv, gzip, logging, numpy, math, bisect, sys, os, copy
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -63,8 +61,8 @@ class ChromosomeManager(object):
         self.next_valid()
         
     def next(self):
-        self.line = self.reader.next()
-        
+        self.line = next(self.reader)
+    
     def is_valid(self, line):
         if len(line) not in [4, 5, 9]:
             return False
@@ -81,13 +79,13 @@ class ChromosomeManager(object):
                 return True
             except ValueError:
                 return False
-        
+
     def next_valid(self):
         ''' Advance to the next valid line in the reader '''
-        self.line = self.reader.next()
+        self.line = next(self.reader)
         s = 0
         while not self.is_valid(self.line):
-            self.line = self.reader.next()
+            self.line = next(self.reader)
             s += 1
         if s > 0:
             logging.info('Skipped initial %d line(s) of file' % s)
@@ -155,15 +153,12 @@ class ChromosomeManager(object):
             else:
                 logging.error('Strand "%s" at chromosome "%s" index %d is not valid.' % (strand, self.chromosome_name(), index))
                 raise InvalidFileError
-        
     
     def skip_chromosome(self):
         ''' Skip the current chromosome, discarding data '''
         self.load_chromosome(collect_data=False)
     
             
-
-
 def make_keys(data):
     return [read[0] for read in data]
     
@@ -185,8 +180,8 @@ def get_range(data):
     hi = max([item[0] for item in data])
     return lo, hi
 
-def get_chunks(lo, hi, size, overlap=500):
-    ''' Divides a range into chunks of maximum size size. Returns a list of 2-tuples
+def get_chunks(lo, hi, size, overlap=1000):
+    ''' Divides a range into chunks of maximum size. Returns a list of 2-tuples
     (slice_range, process_range), each a 2-tuple (start, end). process_range has zero overlap
     and should be given to process_chromosome as-is, and slice_range is overlapped and should be used to
     slice the data (using get_window) to be given to process_chromosome. '''
@@ -198,8 +193,6 @@ def get_chunks(lo, hi, size, overlap=500):
         slice_end = min(process_end + overlap, hi) # Don't go over upper bound
         chunks.append(((slice_start, slice_end), (process_start, process_end)))
     return chunks
-    
-    
 
 def allocate_array(data, width):
     ''' Allocates a new array with the dimensions required to fit all reads in the
@@ -219,7 +212,7 @@ def normal_array(width, sigma, normalize=True):
         
     # width is the half of the distribution
     values = map( normal_func, range(-width, width) )
-    values = numpy.array( values, numpy.float )
+    values = numpy.array( list(values), numpy.float )
 
     # normalization
     if normalize:
@@ -231,7 +224,7 @@ def call_peaks(array, shift, data, keys, direction, options):
     peaks = []
     def find_peaks():
         # Go through the array and call each peak
-        results = (array > numpy.roll(array, 1)) & (array > numpy.roll(array, -1))
+        results = (array >= numpy.roll(array, 1)) & (array >= numpy.roll(array, -1)) & (array > 0)
         indexes = numpy.where(results)
         for index in indexes[0]:
             pos = options.down_width or options.exclusion // 2
@@ -240,18 +233,18 @@ def call_peaks(array, shift, data, keys, direction, options):
                 pos, neg = neg, pos # Swap positive and negative widths
             peaks.append(Peak(int(index)-shift, pos, neg))
     find_peaks()
-        
+ 
     def calculate_reads():
         # Calculate the number of reads in each peak
         for peak in peaks:
             reads = get_window(data, peak.start, peak.end, keys)
             peak.value = sum([read[direction] for read in reads])
+	    #print peak.index,"\t",peak.value
             indexes = [r for read in reads for r in [read[0]] * read[direction]] # Flat list of indexes with frequency
             peak.stddev = numpy.std(indexes)
     calculate_reads()
         
     before = len(peaks)
-        
     def perform_exclusion():
         # Process the exclusion zone
         peak_keys = make_peak_keys(peaks)
@@ -267,7 +260,6 @@ def call_peaks(array, shift, data, keys, direction, options):
                 del peak_keys[i]
                 del peaks[i]
     perform_exclusion()
-            
     after = len(peaks)
     if before != 0:
         logging.debug('%d of %d peaks (%d%%) survived exclusion' % (after, before, after*100/before))
@@ -287,7 +279,6 @@ def process_chromosome(cname, data, writer, process_bounds, options):
     forward_array, forward_shift = allocate_array(data, WIDTH)
     reverse_array, reverse_shift = allocate_array(data, WIDTH)
     normal = normal_array(WIDTH, options.sigma)
-    
     
     def populate_array():
         # Add each read's normal to the array
@@ -311,11 +302,7 @@ def process_chromosome(cname, data, writer, process_bounds, options):
         value = peak.value
         stddev = peak.stddev
         if value > options.filter:
-            if options.format == 'gff':
-                writer.writerow(gff_row(cname=cname, source='genetrack', start=start, end=end,
-                                        score=value, strand=strand, attrs={'stddev':stddev}))
-            else:
-                writer.writerow((cname, strand, start, end, value))
+            writer.writerow(gff_row(cname=cname, source='genetrack', start=start, end=end, score=value, strand=strand, attrs={'stddev':stddev}))
     
     for peak in forward_peaks:
         if process_bounds[0] < peak.index < process_bounds[1]:
@@ -325,13 +312,9 @@ def process_chromosome(cname, data, writer, process_bounds, options):
             write(cname, '-', peak)
     
     
-    
 def get_output_path(input_path, options):
     directory, fname = os.path.split(input_path)
-    
-    if fname.startswith('INPUT'):
-        fname = fname[5:].strip('_') # Strip "INPUT_" from the file if present
-    fname = ''.join(fname.split('.')[:-1]) # Strip extension (will be re-added as appropriate)
+    fname = os.path.basename(fname).split('.')[0] # Strip extension. Basename defined as text before first '.'
 
     attrs = 's%de%d' % (options.sigma, options.exclusion) # Attribute list to add to file/dir name
     if options.up_width:
@@ -340,54 +323,59 @@ def get_output_path(input_path, options):
         attrs += 'd%d' % options.down_width
     if options.filter:
         attrs += 'F%d' % options.filter
-    
+   
+    # Make output file directory 
     output_dir = os.path.join(directory, 'genetrack_%s' % attrs)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    if options.chromosome:
-        fname = options.chromosome + '_' + fname
 
-    return os.path.join(output_dir, '%s_%s.%s' % (fname, attrs, options.format))
+    if options.gzip:
+        return os.path.join(output_dir, '%s_%s.gff.gz' % (fname, attrs))
+    else:
+        return os.path.join(output_dir, '%s_%s.gff' % (fname, attrs))
     
-    
+def is_gz_file(filepath):
+    with open(filepath, 'rb') as testFile:
+        return testFile.read(2) == b'\x1f\x8b'
+ 
 def process_file(path, options):
-    
+    # Size of gaussian kernel based on user-input sigma value
     global WIDTH
     WIDTH = options.sigma * 5
-    
-    logging.info('Processing file "%s" with s=%d, e=%d' % (path, options.sigma, options.exclusion))
-    
-    output_path = get_output_path(path, options)
-    
-    reader = csv.reader(open(path,'rU'), delimiter='\t')
-    writer = csv.writer(open(output_path, 'wt'), delimiter='\t')
+    # Size, in millions of base pairs, to chunk each chromosome into when processing. Each 1 million size uses approximately 20MB of memory. Default 25 
+    global chunk_size
+    chunk_size = 25
 
-    if options.format == 'idx':
-        writer.writerow(('chrom', 'strand', 'start', 'end', 'value'))
-    
+    logging.info('Processing file "%s" with s=%d, e=%d' % (path, options.sigma, options.exclusion))
+   
+    # Create output path folder based on peak-calling attributes
+    output_path = get_output_path(path, options)
+  
+    # If input file is gzipped, open appropriately 
+    if is_gz_file(path):
+        reader = csv.reader(gzip.open(path,'rt'), delimiter='\t')
+    else: 
+        reader = csv.reader(open(path,'rt'), delimiter='\t')
+    # Open csv writer as gzip file is option toggled
+    if options.gzip:
+        writer = csv.writer(gzip.open(output_path, 'wt'), delimiter='\t')
+    else:
+        writer = csv.writer(open(output_path, 'wt'), delimiter='\t')
+
+    # Load chromosome manager and process each chromosome in order
     manager = ChromosomeManager(reader)
-    
-        
     while not manager.done:
         cname = manager.chromosome_name()
-        if not options.chromosome or options.chromosome == cname: # Should we process this chromosome?
-            logging.info('Loading chromosome %s' % cname)
-            data = manager.load_chromosome()
-            if not data:
-                continue
-            keys = make_keys(data)
-            lo, hi = get_range(data)
-            for chunk in get_chunks(lo, hi, size=options.chunk_size * 10 ** 6, overlap=WIDTH):
-                (slice_start, slice_end), process_bounds = chunk
-                window = get_window(data, slice_start, slice_end, keys)
-                process_chromosome(cname, window, writer, process_bounds, options)
-            if options.chromosome: # A specific chromosome was specified. We're done, so terminate
-                break
-            #process_chromosome(cname, list(data), writer, options)
-        else:
-            logging.info('Skipping chromosome %s' % cname)
-            manager.skip_chromosome()
-    
+        logging.info('Loading chromosome %s' % cname)
+        data = manager.load_chromosome()
+        if not data:
+            continue
+        keys = make_keys(data)
+        lo, hi = get_range(data)
+        for chunk in get_chunks(lo, hi, size=chunk_size * 10 ** 6, overlap=WIDTH):
+            (slice_start, slice_end), process_bounds = chunk
+            window = get_window(data, slice_start, slice_end, keys)
+            process_chromosome(cname, window, writer, process_bounds, options)
 
 usage = '''
 input_paths may be:
@@ -401,15 +389,12 @@ python genetrack.py -s 5 -e 50 /path/to/a/data/directory/
 python genetrack.py .
 '''.lstrip()
 
-
- 
 # We must override the help formatter to force it to obey our newlines in our custom description
 class CustomHelpFormatter(IndentedHelpFormatter):
     def format_description(self, description):
         return description
 
-
-def run():   
+if __name__ == '__main__':
     parser = OptionParser(usage='%prog [options] input_paths', description=usage, formatter=CustomHelpFormatter())
     parser.add_option('-s', action='store', type='int', dest='sigma', default=5,
                       help='Sigma to use when smoothing reads to call peaks. Default 5.')
@@ -421,44 +406,27 @@ def run():
                       help='Downstream width of called peaks. Default uses half exclusion zone.')
     parser.add_option('-F', action='store', type='int', dest='filter', default='1',
                       help='Absolute read filter; outputs only peaks with larger read count. Default 1. ')
-    parser.add_option('-c', action='store', type='string', dest='chromosome', default='',
-                      help='Chromosome (ex chr11) to limit to. Default process all.')
-    parser.add_option('-f', action='store', type='string', dest='config_file', default='',
-                      help='Optional file to load sigma and exclusion parameters per input file.')
-    parser.add_option('-k', action='store', type='int', dest='chunk_size', default=10,
-                      help='Size, in millions of base pairs, to chunk each chromosome into when processing. Each 1 million size uses approximately 20MB of memory. Default 10.')
-    parser.add_option('-o', action='store', type='string', dest='format', default='gff',
-                      help='Output format for called peaks. Valid formats are gff (default) and txt.')
+    parser.add_option('-z', action='store_true', dest='gzip', help='Output files as gzip')
     parser.add_option('-v', action='store_true', dest='verbose', help='Verbose mode: displays debug messages')
     parser.add_option('-q', action='store_true', dest='quiet', help='Quiet mode: suppresses all non-error messages')
     (options, args) = parser.parse_args()
-    
+   
+    # Set logging options based on command line 
     if options.verbose:
         logging.getLogger().setLevel(logging.DEBUG) # Show all info/debug messages
     if options.quiet:
         logging.getLogger().setLevel(logging.ERROR) # Silence all non-error messages
         
-        
-    if options.format not in ['gff','txt']:
-        parser.error('%s is not a valid format. Use -h option for a list of valid methods.' % options.format)
-        
-        
     if not args:
         parser.print_help()
         sys.exit(1)
         
-    CONFIG = {}
-    if options.config_file:
-        logging.info('Loading configuration file "%s"' % options.config_file)
-        reader = csv.reader(open(options.config_file, 'rU'), delimiter='\t')
-        for line in reader:
-            if len(line) == 3 and is_int(line[1]) and is_int(line[2]):
-                CONFIG[line[0]] = {'sigma':int(line[1]), 'exclusion':int(line[2])}
-        logging.info('Loaded configuration settings for %d files.' % len(CONFIG))
-        
+    # Load command line arguments
     for path in args:
+	# Check for existence of path containing input files
         if not os.path.exists(path):
             parser.error('Path %s does not exist.' % path)
+	# If path is directory and not file, append all files in folder to array for processing
         if os.path.isdir(path):
             files = []
             for fname in os.listdir(path):
@@ -468,26 +436,7 @@ def run():
         else:
             files = [path]
         for fpath in files:
-            dir, fname = os.path.split(fpath)
-            if fname in CONFIG:
-                current_options = copy.deepcopy(options)
-                current_options.sigma = CONFIG[fname]['sigma']
-                current_options.exclusion = CONFIG[fname]['exclusion']
-            else:
-                if options.config_file:
-                    logging.warning('File "%s" not found in config file' % fname)
-                current_options = options
             try:
-                process_file(fpath, current_options)
+                process_file(fpath, options)
             except InvalidFileError:
                 logging.error('Unable to process file "%s"' % fpath)
-            
-if __name__ == '__main__':
-    #reader = csv.reader(open('data/INPUT_genetrack_Reb1_rep2.idx', 'rU'), delimiter='\t')
-    #it = chromosome_iterator(reader)
-    #for cname, data in it:
-    #    print cname, len(list(data))
-    run()
-    #import cProfile
-    #cProfile.run('run()', 'profilev8.bin')
-            
