@@ -19,15 +19,11 @@ import csv, gzip, logging, numpy, math, bisect, sys, os, copy
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
-WIDTH = 100
-
 def gff_row(cname, start, end, score, source, type='.', strand='.', phase='.', attrs={}):
-    return (cname, source, type, start, end, score, strand, phase, gff_attrs(attrs))
-
-def gff_attrs(d):
-    if not d:
-        return '.'
-    return ';'.join('%s=%s' % item for item in d.items())
+    attr_string = "."
+    if attrs:
+        attr_string = ';'.join('%s=%s' % item for item in attrs.items())
+    return (cname, source, type, start, end, score, strand, phase, attr_string)
 
 class InvalidFileError(Exception):
     pass
@@ -42,14 +38,6 @@ class Peak(object):
         self.safe = False
     def __repr__(self):
         return '[%d] %d' % (self.index, self.value)
-
-def is_int(i):
-    try:
-        int(i)
-        return True
-    except ValueError:
-        return False
-
 
 class ChromosomeManager(object):
     ''' Manages a CSV reader of an index file to only load one chrom at a time '''
@@ -154,26 +142,11 @@ class ChromosomeManager(object):
                 logging.error('Strand "%s" at chromosome "%s" index %d is not valid.' % (strand, self.chromosome_name(), index))
                 raise InvalidFileError
 
-    def skip_chromosome(self):
-        ''' Skip the current chromosome, discarding data '''
-        self.load_chromosome(collect_data=False)
-
-
-def make_keys(data):
-    return [read[0] for read in data]
-
-def make_peak_keys(peaks):
-    return [peak.index for peak in peaks]
-
 def get_window(data, start, end, keys):
     ''' Returns all reads from the data set with index between the two indexes'''
     start_index = bisect.bisect_left(keys, start)
     end_index = bisect.bisect_right(keys, end)
     return data[start_index:end_index]
-
-def get_index(value, keys):
-    ''' Returns the index of the value in the keys using bisect '''
-    return bisect.bisect_left(keys, value)
 
 def get_range(data):
     lo = min([item[0] for item in data])
@@ -247,7 +220,7 @@ def call_peaks(array, shift, data, keys, direction, options):
     before = len(peaks)
     def perform_exclusion():
         # Process the exclusion zone
-        peak_keys = make_peak_keys(peaks)
+        peak_keys = [peak.index for peak in peaks]
         peaks_by_value = peaks[:]
         peaks_by_value.sort(key=lambda peak: -peak.value)
         for peak in peaks_by_value:
@@ -256,7 +229,8 @@ def call_peaks(array, shift, data, keys, direction, options):
             for excluded in window:
                 if excluded.safe:
                     continue
-                i = get_index(excluded.index, peak_keys)
+                # i is the index of the value in the keys using bisect
+                i = bisect.bisect_left(peak_keys, excluded.index)
                 del peak_keys[i]
                 del peaks[i]
     perform_exclusion()
@@ -266,7 +240,7 @@ def call_peaks(array, shift, data, keys, direction, options):
 
     return peaks
 
-def process_chromosome(cname, data, writer, process_bounds, options):
+def process_chromosome(cname, data, writer, process_bounds, options, WIDTH):
     ''' Process a chromosome. Takes the chromosome name, list of reads, a CSV writer
     to write processes results to, the bounds (2-tuple) to write results in, and options. '''
     if data:
@@ -274,7 +248,7 @@ def process_chromosome(cname, data, writer, process_bounds, options):
     else:
         logging.info('Skipping chromosome %s indexes %d-%d because no reads within these bounds' % (cname, process_bounds[0], process_bounds[1]))
         return
-    keys = make_keys(data)
+    keys = [read[0] for read in data]
     # Create the arrays that hold the sum of the normals
     forward_array, forward_shift = allocate_array(data, WIDTH)
     reverse_array, reverse_shift = allocate_array(data, WIDTH)
@@ -311,7 +285,6 @@ def process_chromosome(cname, data, writer, process_bounds, options):
         if process_bounds[0] < peak.index < process_bounds[1]:
             write(cname, '-', peak)
 
-
 def get_output_path(input_path, options):
     directory, fname = os.path.split(input_path)
     fname = os.path.basename(fname).split('.')[0] # Strip extension. Basename defined as text before first '.'
@@ -340,10 +313,8 @@ def is_gz_file(filepath):
 
 def process_file(path, options):
     # Size of gaussian kernel based on user-input sigma value
-    global WIDTH
     WIDTH = options.sigma * 5
     # Size, in millions of base pairs, to chunk each chromosome into when processing. Each 1 million size uses approximately 20MB of memory. Default 25
-    global chunk_size
     chunk_size = 25
 
     logging.info('Processing file "%s" with s=%d, e=%d' % (path, options.sigma, options.exclusion))
@@ -370,12 +341,12 @@ def process_file(path, options):
         data = manager.load_chromosome()
         if not data:
             continue
-        keys = make_keys(data)
+        keys = [read[0] for read in data]
         lo, hi = get_range(data)
         for chunk in get_chunks(lo, hi, size=chunk_size * 10 ** 6, overlap=WIDTH):
             (slice_start, slice_end), process_bounds = chunk
             window = get_window(data, slice_start, slice_end, keys)
-            process_chromosome(cname, window, writer, process_bounds, options)
+            process_chromosome(cname, window, writer, process_bounds, options, WIDTH)
 
 usage = '''
 input_paths may be:
