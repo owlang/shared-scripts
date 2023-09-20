@@ -1,7 +1,7 @@
 # genetrack_v2.py
 #
 # Peak calling script
-# 
+#
 # Original by Pindi Albert, 2011
 # Modified by William Lai, 2019
 #
@@ -23,7 +23,7 @@ WIDTH = 100
 
 def gff_row(cname, start, end, score, source, type='.', strand='.', phase='.', attrs={}):
     return (cname, source, type, start, end, score, strand, phase, gff_attrs(attrs))
-    
+
 def gff_attrs(d):
     if not d:
         return '.'
@@ -49,8 +49,8 @@ def is_int(i):
         return True
     except ValueError:
         return False
-        
-        
+
+
 class ChromosomeManager(object):
     ''' Manages a CSV reader of an index file to only load one chrom at a time '''
     def __init__(self, reader):
@@ -59,10 +59,10 @@ class ChromosomeManager(object):
         self.processed_chromosomes = []
         self.current_index = 0
         self.next_valid()
-        
+
     def next(self):
         self.line = next(self.reader)
-    
+
     def is_valid(self, line):
         if len(line) not in [4, 5, 9]:
             return False
@@ -89,17 +89,17 @@ class ChromosomeManager(object):
             s += 1
         if s > 0:
             logging.info('Skipped initial %d line(s) of file' % s)
-            
+
     def parse_line(self, line):
         if self.format == 'idx':
             return [int(line[1]), int(line[2]), int(line[3])]
         else:
             return [int(line[3]), line[6], line[5]]
-            
+
     def chromosome_name(self):
         ''' Return the name of the chromosome about to be loaded '''
         return self.line[0]
-        
+
     def load_chromosome(self, collect_data=True):
         ''' Load the current chromosome into an array and return it '''
         cname = self.chromosome_name()
@@ -125,7 +125,7 @@ class ChromosomeManager(object):
         data = self.data
         del self.data # Don't retain reference anymore to save memory
         return data
-    
+
     def add_read(self, read):
         if self.format == 'idx':
             self.data.append(read)
@@ -153,15 +153,15 @@ class ChromosomeManager(object):
             else:
                 logging.error('Strand "%s" at chromosome "%s" index %d is not valid.' % (strand, self.chromosome_name(), index))
                 raise InvalidFileError
-    
+
     def skip_chromosome(self):
         ''' Skip the current chromosome, discarding data '''
         self.load_chromosome(collect_data=False)
-    
-            
+
+
 def make_keys(data):
     return [read[0] for read in data]
-    
+
 def make_peak_keys(peaks):
     return [peak.index for peak in peaks]
 
@@ -170,7 +170,7 @@ def get_window(data, start, end, keys):
     start_index = bisect.bisect_left(keys, start)
     end_index = bisect.bisect_right(keys, end)
     return data[start_index:end_index]
-    
+
 def get_index(value, keys):
     ''' Returns the index of the value in the keys using bisect '''
     return bisect.bisect_left(keys, value)
@@ -201,22 +201,22 @@ def allocate_array(data, width):
     lo, hi = get_range(data)
     rng = hi - lo
     shift = width - lo
-    return numpy.zeros(rng+width*2, numpy.float), shift
-    
+    return numpy.zeros(rng+width*2, float), shift
+
 def normal_array(width, sigma, normalize=True):
     ''' Returns an array of the normal distribution of the specified width '''
     sigma2 = float(sigma)**2
-    
+
     def normal_func(x):
         return math.exp( -x * x / ( 2 * sigma2 ))
-        
+
     # width is the half of the distribution
     values = map( normal_func, range(-width, width) )
-    values = numpy.array( list(values), numpy.float )
+    values = numpy.array( list(values), float )
 
     # normalization
     if normalize:
-        values = 1.0/math.sqrt(2 * numpy.pi * sigma2) * values 
+        values = 1.0/math.sqrt(2 * numpy.pi * sigma2) * values
 
     return values
 
@@ -233,7 +233,7 @@ def call_peaks(array, shift, data, keys, direction, options):
                 pos, neg = neg, pos # Swap positive and negative widths
             peaks.append(Peak(int(index)-shift, pos, neg))
     find_peaks()
- 
+
     def calculate_reads():
         # Calculate the number of reads in each peak
         for peak in peaks:
@@ -243,7 +243,7 @@ def call_peaks(array, shift, data, keys, direction, options):
             indexes = [r for read in reads for r in [read[0]] * read[direction]] # Flat list of indexes with frequency
             peak.stddev = numpy.std(indexes)
     calculate_reads()
-        
+
     before = len(peaks)
     def perform_exclusion():
         # Process the exclusion zone
@@ -263,9 +263,9 @@ def call_peaks(array, shift, data, keys, direction, options):
     after = len(peaks)
     if before != 0:
         logging.debug('%d of %d peaks (%d%%) survived exclusion' % (after, before, after*100/before))
-            
+
     return peaks
-    
+
 def process_chromosome(cname, data, writer, process_bounds, options):
     ''' Process a chromosome. Takes the chromosome name, list of reads, a CSV writer
     to write processes results to, the bounds (2-tuple) to write results in, and options. '''
@@ -279,7 +279,7 @@ def process_chromosome(cname, data, writer, process_bounds, options):
     forward_array, forward_shift = allocate_array(data, WIDTH)
     reverse_array, reverse_shift = allocate_array(data, WIDTH)
     normal = normal_array(WIDTH, options.sigma)
-    
+
     def populate_array():
         # Add each read's normal to the array
         for read in data:
@@ -290,7 +290,7 @@ def process_chromosome(cname, data, writer, process_bounds, options):
             if reverse:
                 reverse_array[index+reverse_shift-WIDTH:index+reverse_shift+WIDTH] += normal * reverse
     populate_array()
-        
+
     logging.debug('Calling forward strand')
     forward_peaks = call_peaks(forward_array, forward_shift, data, keys, 1, options)
     logging.debug('Calling reverse strand')
@@ -303,15 +303,15 @@ def process_chromosome(cname, data, writer, process_bounds, options):
         stddev = peak.stddev
         if value > options.filter:
             writer.writerow(gff_row(cname=cname, source='genetrack', start=start, end=end, score=value, strand=strand, attrs={'stddev':stddev}))
-    
+
     for peak in forward_peaks:
         if process_bounds[0] < peak.index < process_bounds[1]:
             write(cname, '+', peak)
     for peak in reverse_peaks:
         if process_bounds[0] < peak.index < process_bounds[1]:
             write(cname, '-', peak)
-    
-    
+
+
 def get_output_path(input_path, options):
     directory, fname = os.path.split(input_path)
     fname = os.path.basename(fname).split('.')[0] # Strip extension. Basename defined as text before first '.'
@@ -323,8 +323,8 @@ def get_output_path(input_path, options):
         attrs += 'd%d' % options.down_width
     if options.filter:
         attrs += 'F%d' % options.filter
-   
-    # Make output file directory 
+
+    # Make output file directory
     output_dir = os.path.join(directory, 'genetrack_%s' % attrs)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -333,28 +333,28 @@ def get_output_path(input_path, options):
         return os.path.join(output_dir, '%s_%s.gff.gz' % (fname, attrs))
     else:
         return os.path.join(output_dir, '%s_%s.gff' % (fname, attrs))
-    
+
 def is_gz_file(filepath):
     with open(filepath, 'rb') as testFile:
         return testFile.read(2) == b'\x1f\x8b'
- 
+
 def process_file(path, options):
     # Size of gaussian kernel based on user-input sigma value
     global WIDTH
     WIDTH = options.sigma * 5
-    # Size, in millions of base pairs, to chunk each chromosome into when processing. Each 1 million size uses approximately 20MB of memory. Default 25 
+    # Size, in millions of base pairs, to chunk each chromosome into when processing. Each 1 million size uses approximately 20MB of memory. Default 25
     global chunk_size
     chunk_size = 25
 
     logging.info('Processing file "%s" with s=%d, e=%d' % (path, options.sigma, options.exclusion))
-   
+
     # Create output path folder based on peak-calling attributes
     output_path = get_output_path(path, options)
-  
-    # If input file is gzipped, open appropriately 
+
+    # If input file is gzipped, open appropriately
     if is_gz_file(path):
         reader = csv.reader(gzip.open(path,'rt'), delimiter='\t')
-    else: 
+    else:
         reader = csv.reader(open(path,'rt'), delimiter='\t')
     # Open csv writer as gzip file is option toggled
     if options.gzip:
@@ -410,17 +410,17 @@ if __name__ == '__main__':
     parser.add_option('-v', action='store_true', dest='verbose', help='Verbose mode: displays debug messages')
     parser.add_option('-q', action='store_true', dest='quiet', help='Quiet mode: suppresses all non-error messages')
     (options, args) = parser.parse_args()
-   
-    # Set logging options based on command line 
+
+    # Set logging options based on command line
     if options.verbose:
         logging.getLogger().setLevel(logging.DEBUG) # Show all info/debug messages
     if options.quiet:
         logging.getLogger().setLevel(logging.ERROR) # Silence all non-error messages
-        
+
     if not args:
         parser.print_help()
         sys.exit(1)
-        
+
     # Load command line arguments
     for path in args:
 	# Check for existence of path containing input files
@@ -431,7 +431,7 @@ if __name__ == '__main__':
             files = []
             for fname in os.listdir(path):
                 fpath = os.path.join(path, fname)
-                if os.path.isfile(fpath) and not fname.startswith('.'): 
+                if os.path.isfile(fpath) and not fname.startswith('.'):
                     files.append(fpath)
         else:
             files = [path]
