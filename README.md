@@ -1,2 +1,4 @@
 # shared-scripts
-miscellaneous tools for sharing to labmates
+
+This repo stores generally used scripts and executables written by Olivia Lang and William KM Lai.
+
