@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 if (paired_end == '1'):
                     FQ1 = ddata.get('accession', None)
                     platform = data.get('platform', {}).get('@id', None)
-                    platform_name = data.get('platform', {}).get('title', None)s
+                    platform_name = data.get('platform', {}).get('title', None)
                     md5sum1 = ddata.get('md5sum', None)
                 if (paired_end == '2'):
                     FQ2 = ddata.get('accession', None)
