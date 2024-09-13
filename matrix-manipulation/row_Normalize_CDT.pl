@@ -20,9 +20,11 @@ while(<IN>) {
 				$MAX = $array[$x];
 			}
 		}
-		# Scale by $MAX
-		for ($x = 2; $x <= $#array; $x++) {
-			$array[$x] /= $MAX;
+		# Scale by $MAX (if max not 0)
+		if ($MAX !=0) {
+			for ($x = 2; $x <= $#array; $x++) {
+				$array[$x] /= $MAX;
+			}
 		}
 		# Write new row
 		print OUT join("\t", @array),"\n";
