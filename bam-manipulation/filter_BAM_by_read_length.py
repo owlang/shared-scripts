@@ -52,18 +52,16 @@ if __name__ == "__main__":
 	filterfile = pysam.AlignmentFile(args.output, "wb", template=samfile)
 	# Iterate across all reads
 	for sr in samfile.fetch():
-		keep = False
 		# filter max if specified
-		if (args.max > -1 and sr.reference_length < args.max):
-			keep = True
+		if (args.max > -1 and sr.reference_length > args.max):
 			# print("max %s" % sr.reference_length)
+			continue
 		# filter min if specified
-		if (args.min > -1 and sr.reference_length > args.min):
-			keep = True
+		if (args.min > -1 and sr.reference_length < args.min):
 			# print("min %s" % sr.reference_length)
+			continue
 		# write if passed filter
-		if (keep):
-			filterfile.write(sr)
+		filterfile.write(sr)
 	# Close files
 	samfile.close()
 	filterfile.close()
