@@ -20,7 +20,7 @@ def getParams():
 	'''Parse parameters from the command line'''
 	parser = argparse.ArgumentParser(description='')
 
-	parser.add_argument('-i','--input', metavar='two_col_file', dest='data_file', required=False, default=None, help='tab-delimited file made of two columns: first column y values to plot (must all be numeric values), second column is the grouping (which violin group along x-axis to contribute to)')
+	parser.add_argument('-i','--input', metavar='two_col_file', dest='data_file', required=False, default=None, help='tab-delimited file with the first row header made of two columns: first column y values to plot (must all be numeric values), second column is the grouping (which violin group along x-axis to contribute to)')
 	parser.add_argument('-o','--output', metavar='output_svg', dest='output_svg', required=False, default=None, help='name of SVG filepath to save figure to (if none provided, figure pops up in new window)')
 
 	parser.add_argument('--log', action='store_true', help='Log transform the values')
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 	if( args.data_file ==None ):
 		data = fake_data()
 	else:
-		data = pd.read_csv(args.data_file, sep="\t", header=0)
+		data = pd.read_csv(args.data_file, sep="\t", header=0, names=["ValueX", "ValueY"])
 
 	# # Log-transform the data
 	# if (args.log):
@@ -58,14 +58,14 @@ if __name__ == "__main__":
 	# Cap the max value
 	# if (args.max != None):
 		# data = data.clip(upper=pd.Series({'Value': args.max}), axis=1)
-	
+
 	#plot figure with specificied size
 	# plt.figure(figsize=(8,4))
 
 	# Scatter Plot or other type of plot here!!!!!
 	# could swap out for 'swarmplot' and google seaborn library for others
 	ax = sns.scatterplot(x="ValueX", y="ValueY", data=data)
-	
+
 	if (args.log):
 		ax.set(xscale="log", yscale="log")
 
