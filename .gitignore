@@ -3,5 +3,9 @@ sra-growth/sra_stat.csv
 
 auto_README.md
 
+FakeGenome/Random.fa.*
+FakeGenome/Sample_R1.fa
+FakeGenome/Sample_R2.fa
+
 # Git data hidey hole
 y-hidden
