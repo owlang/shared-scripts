@@ -13,7 +13,7 @@ def getParams():
 	'''Parse parameters from the command line'''
 	parser = argparse.ArgumentParser(description = """
 ============
-Get tally of dinucleotides around 5' cut site from reads in a BAM file.
+Get tally of dinucleotides around 5' cut site from reads in a BAM file. Ignores N-containing sequences around the read.
 ============
 		Single read example output:
 		                   |------------------->   (Read, '|' indicates 5' cut site, '>' indicates read direction)
@@ -166,8 +166,10 @@ if __name__ == '__main__':
 		if (start <= 0 or end > genome.get_reference_length(ref_name)):
 			raise Exception("Sequence window falls at the edge of the chromosome: (%s: %i-%i" % (ref_name, start, end))
 
-		# Fetch the sequence from the genome
+		# Fetch the sequence from the genome (skip N-containing)
 		sequence = genome.fetch(ref_name, start, end).upper()
+		if (sequence.find('N')>=0):
+			continue
 
 		# Take reverse complement if read maps to reverse strand
 		if (read.is_reverse):
