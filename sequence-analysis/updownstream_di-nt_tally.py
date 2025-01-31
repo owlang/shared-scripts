@@ -118,6 +118,8 @@ if __name__ == '__main__':
 	# Initialize a dictionary to store dinucleotide counts by position
 	df_counts = initialize_di_nt_df(args.l, args.r)
 
+	counter = 0
+
 	# Iterate through each read in the BAM file
 	for read in bam:
 		# Skip unmapped, secondary, and supplementary reads
@@ -181,6 +183,11 @@ if __name__ == '__main__':
 			position = i - args.l  # Position relative to the read start
 			# print(position)
 			df_counts.loc[dinucleotide, position] += 1
+
+		# Print progress
+		counter += 1
+		if (counter % 100 == 0):
+			print('%i reads tallied...' % counter)
 
 	# Close files
 	genome.close()
