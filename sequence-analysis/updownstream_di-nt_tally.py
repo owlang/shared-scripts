@@ -166,7 +166,9 @@ if __name__ == '__main__':
 
 		# Validate window and fetch sequence
 		if (start <= 0 or end > genome.get_reference_length(ref_name)):
-			raise Exception("Sequence window falls at the edge of the chromosome: (%s: %i-%i" % (ref_name, start, end))
+			# raise Exception("Sequence window falls at the edge of the chromosome: (%s: %i-%i)" % (ref_name, start, end))
+			sys.stderr.write("Sequence window falls at the edge of the chromosome: (%s: %i-%i) skipping..." % (ref_name, start, end))
+			continue
 
 		# Fetch the sequence from the genome (skip N-containing)
 		sequence = genome.fetch(ref_name, start, end).upper()
