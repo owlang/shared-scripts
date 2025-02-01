@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 import argparse, sys
-from os.path import isfile, join, splitext
+from os.path import splitext
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# from os import listdir
-# from os.path import isfile, join, splitext
-# import re, sys
-# import random
 
 # Python 3.6+
 # relies on dict insertion order

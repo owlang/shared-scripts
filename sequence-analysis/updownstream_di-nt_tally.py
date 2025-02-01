@@ -1,8 +1,7 @@
-import sys, argparse, csv, os
+import sys, argparse, os
 import numpy as np
 import pandas as pd
 import pysam
-import math
 
 comp = {'A':'T', 'T':'A',
 		'C':'G', 'G':'C',
