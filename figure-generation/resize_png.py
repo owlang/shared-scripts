@@ -2,6 +2,9 @@ import getopt, sys
 import cv2
 #import numpy as np
 
+# https://anaconda.org/conda-forge/opencv
+# conda install conda-forge::opencv
+
 ############################################################################
 ### python resize_png.py -i input.png -o output.png -r 200 -c 600
 ############################################################################
