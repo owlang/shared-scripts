@@ -1,0 +1,6 @@
+matrix_id	name	is_dimer	tf_class_list	tf_family_list	species_list	tax_group	data_type	acc_list	length	comment
+MA0004.1	Arnt	-	Basic helix-loop-helix factors (bHLH)	PAS domain factors	10090	vertebrates	SELEX	P53762	6	
+MA0604.1	Atf1	-	Basic leucine zipper factors (bZIP)	CREB-related factors	10090	vertebrates	PBM	P81269	8	
+MA1632.2	ATF2	-	Basic leucine zipper factors (bZIP)	Jun-related	9606	vertebrates	ChIP-seq	P15336	10	
+MA0605.3	ATF3	-	Basic leucine zipper factors (bZIP)	Fos-related	9606	vertebrates	HT-SELEX	P18847	10	
+MA0140.3	GATA1::TAL1	dimer	Other C4 zinc finger-type factors;Basic helix-loop-helix factors (bHLH)	C4-GATA-related;Tal-related	9606	vertebrates	ChIP-seq	P15976;P17542	17	
