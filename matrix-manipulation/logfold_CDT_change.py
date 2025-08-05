@@ -24,7 +24,9 @@ if __name__ == "__main__":
 	# Load signal & background info
 	dfa = pd.read_csv(args.control_fn, sep="\t", header=0, index_col=[0,1])
 	dfb = pd.read_csv(args.perturb_fn, sep="\t", header=0, index_col=[0,1])
+
 	# LogFold
-	folded = dfb / dfa
+	folded = np.log2(dfb) - np.log2(dfa)
+
 	# Write output
 	folded.to_csv(args.output_fn, sep="\t", na_rep='NaN')
