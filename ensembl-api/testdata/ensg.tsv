@@ -1,0 +1,4 @@
+accession	display_name	biotype	db_type	source	species	description
+ENSG00000170312	CDK1	protein_coding	core	ensembl_havana	homo_sapiens	cyclin dependent kinase 1 [Source:HGNC Symbol;Acc:HGNC:1722]
+ENSG00000157764	BRAF	protein_coding	core	ensembl_havana	homo_sapiens	B-Raf proto-oncogene, serine/threonine kinase [Source:HGNC Symbol;Acc:HGNC:1097]
+ENSG00000248378		lncRNA	core	havana	homo_sapiens	novel transcript
