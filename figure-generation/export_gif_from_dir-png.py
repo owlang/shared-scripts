@@ -4,10 +4,8 @@ Convert a directory of PNG files into an animated GIF.
 Requires: pip install Pillow
 """
 
-import os
-import sys
+import os, sys, argparse
 from PIL import Image
-import argparse
 import glob
 
 def convert_png_directory_to_gif(input_dir, output_file="animation.gif", duration=500, loop=0):
