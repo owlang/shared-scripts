@@ -1,14 +1,26 @@
 #! /usr/bin/perl/
 
+# Example TATAWAWR.pwm input Motif_File
+# A	C	G	T
+# 0	0	0	1
+# 1	0	0	0
+# 0	0	0	1
+# 1	0	0	0
+# 0.5	0	0	0.5
+# 1	0	0	0
+# 0.5	0	0	0.5
+# 0.5	0	0.5	0
+
+
 die "FASTA_File\tMotif_File\tOutput_Forward\tOutput_Reverse\n" unless $#ARGV == 3;
 my($input, $motif, $outF, $outR) = @ARGV;
 
 open(MOT, "<$motif") or die "Can't open $motif for reading!\n";
 my @PWM;
-while(<MOT>){
-        chomp;
-        my @tmp = split(/\t/, $_);
-        push(@PWM, [@tmp]);
+while(<MOT>) {
+	chomp;
+	my @tmp = split(/\t/, $_);
+	push(@PWM, [@tmp]);
 }
 close MOT;
 
@@ -25,9 +37,9 @@ while($line = <IN>) {
 		$currentID = substr $line, 1;
 	} else {
 		$line = uc $line;
-	        $rcline = reverse $line;
-        	$rcline =~ tr/ACGTacgt/TGCAtgca/;
-	        @array = split(//, $line);
+		$rcline = reverse $line;
+		$rcline =~ tr/ACGTacgt/TGCAtgca/;
+		@array = split(//, $line);
 
 		$A = $T = $G = $C = 0;
 		for($x = 0; $x <= $#array; $x++) {
@@ -64,7 +76,7 @@ while($line = <IN>) {
 				print OUTF "YORF\tNAME";
 				print OUTR "YORF\tNAME";
 				for($x = 0; $x <= $#array - $#localPWM; $x++) {
-	                                print OUTF "\t$x";
+					print OUTF "\t$x";
 					print OUTR "\t$x";
 				}
 				print OUTF "\n";
@@ -79,18 +91,18 @@ while($line = <IN>) {
 				@RCSEQ = split(//, substr $rcline, $x, $#localPWM + 1);
 				for($i = 0; $i <= $#SEQ; $i++) {
 					if($SEQ[$i] eq "A") { $SCORE += $localPWM[$i][0]; }
-					elsif($SEQ[$i] eq "C") { $SCORE += $localPWM[$i][1]; } 
-					elsif($SEQ[$i] eq "G") { $SCORE += $localPWM[$i][2]; } 
-					elsif($SEQ[$i] eq "T") { $SCORE += $localPWM[$i][3]; } 
-					
+					elsif($SEQ[$i] eq "C") { $SCORE += $localPWM[$i][1]; }
+					elsif($SEQ[$i] eq "G") { $SCORE += $localPWM[$i][2]; }
+					elsif($SEQ[$i] eq "T") { $SCORE += $localPWM[$i][3]; }
+
 					if($RCSEQ[$i] eq "A") { $RCSCORE += $localPWM[$i][0]; }
-	                                elsif($RCSEQ[$i] eq "C") { $RCSCORE += $localPWM[$i][1]; } 
-	                                elsif($RCSEQ[$i] eq "G") { $RCSCORE += $localPWM[$i][2]; } 
-	                                elsif($RCSEQ[$i] eq "T") { $RCSCORE += $localPWM[$i][3]; } 
+					elsif($RCSEQ[$i] eq "C") { $RCSCORE += $localPWM[$i][1]; }
+					elsif($RCSEQ[$i] eq "G") { $RCSCORE += $localPWM[$i][2]; }
+					elsif($RCSEQ[$i] eq "T") { $RCSCORE += $localPWM[$i][3]; }
 				}
 				push(@SCOREarray, $SCORE);
 				push(@RCSCOREarray, $RCSCORE);
-				
+
 			}
 			print OUTF "$currentID\t$currentID";
 			print OUTR "$currentID\t$currentID";
