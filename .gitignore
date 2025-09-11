@@ -1,11 +1,14 @@
 **/.DS_Store
-sra-growth/sra_stat.csv
+
 
 auto_README.md
 
 FakeGenome/Random.fa.*
 FakeGenome/Sample_R1.fa
 FakeGenome/Sample_R2.fa
+
+sra-growth/sra_stat.csv
+sra-growth/sra-growth.svg
 
 # Git data hidey hole
 y-hidden

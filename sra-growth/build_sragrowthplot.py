@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
+
+plt.rcParams['svg.fonttype'] = 'none'
 sns.set()
 
 def getParams():
@@ -41,7 +43,7 @@ if __name__ == '__main__':
 	filedata = filedata.sort_values('formatted_date')
 
 	# Create the line plot using seaborn
-	snsplot = sns.lineplot(data=filedata, x='formatted_date', y='open_access_bases')#, ci=None, bottom=0)
+	snsplot = sns.lineplot(data=filedata, x='formatted_date', y='open_access_bases', c='black')#, ci=None, bottom=0)
 
 	# Set y-axis scale to logarithmic
 	plt.yscale('log')
