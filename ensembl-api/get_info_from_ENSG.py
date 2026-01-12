@@ -26,22 +26,31 @@ Retrieve Ensembl metadata for a list of ENSG accessions.
 
 def fetch_data(ensg_list):
 
-    # Build string from list of ids
-    list_str = ','.join(f"\"{id}\"" for id in ensg_list)
+    payload = {}
 
-    # Build post request
+    # POST constants
     server = "https://rest.ensembl.org"
     ext = "/lookup/id"
     headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 
-    # POST
-    r = requests.post(server+ext, headers=headers, data='{ "ids" : [' + list_str + '] }')
+    # Split POST into groups of max 1000 ids
+    chunk_size = 10 #1000
+    chunked_list = [ensg_list[i:i + chunk_size] for i in range(0, len(ensg_list), chunk_size)]
 
-    if not r.ok:
-        r.raise_for_status()
-        raise Exception(f"Some sort of request error encountered")
+    for chunk in chunked_list:
+    
+        # Build string from list of ids
+        list_str = ','.join(f"\"{id}\"" for id in chunk)
+    
+        # POST
+        r = requests.post(server+ext, headers=headers, data='{ "ids" : [' + list_str + '] }')
 
-    payload = r.json()
+        if not r.ok:
+            r.raise_for_status()
+            raise Exception(f"Some sort of request error encountered")
+
+        payload.update(r.json())
+    
     # print(repr(payload))
     return(payload)
 
@@ -98,20 +107,28 @@ if __name__ == '__main__':
 
     # Initialize line storage
     lines = []
+    headers = ["accession", "display_name", "biotype", "db_type", "source", "species", "description"]
 
     # Parse payload for each accession
     for ensg in ensg_list:
 
         data = payload[ensg]
 
-        display_name = data.get('display_name', '')
+        if data:
 
-        # Update lines with new metadata
-        row = [ensg, display_name, data['biotype'], data['db_type'], data['source'], data['species'], data['description']]
+            display_name = data.get('display_name', "")
+            description = data.get('description', "")
 
-        lines.append('\t'.join([str(i) for i in row]))
+            # Update lines with new metadata
+            row = [ensg, display_name, data['biotype'], data['db_type'], data['source'], data['species'], description]
 
-    headers = ["accession", "display_name", "biotype", "db_type", "source", "species", "description"]
+            lines.append('\t'.join([str(i) for i in row]))
+        else:
+            row = [ensg]
+            row.extend([""]* (len(headers)-1))
+
+            lines.append('\t'.join([str(i) for i in row]))
+
     # Writing to sample.json
     with open(args.output, "w") as outfile:
         outfile.write('\t'.join(headers) + "\n")
