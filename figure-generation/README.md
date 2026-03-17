@@ -4,6 +4,30 @@ Handy links:
 - Check Matplotlib colors when building your config files: https://matplotlib.org/stable/gallery/color/named_colors.html
 
 
+## `sankey_nt-transitions_FASTA.py`
+
+```sh
+usage: sankey_nt-transitions_FASTA.py [-h] [-o OUTPUT] [--range START END] [--width WIDTH] [--height HEIGHT] fasta
+
+Sankey plot of nucleotide transitions
+
+positional arguments:
+  fasta                Input FASTA file
+
+options:
+  -h, --help           show this help message and exit
+  -o, --output OUTPUT  Output HTML file
+  --range START END
+  --width WIDTH
+  --height HEIGHT
+```
+
+Example:
+
+```sh
+python sankey_nt-transitions_FASTA.py test/ctcf_20bp.fa.gz -o ctcf.html
+```
+
 ## `heatmap_CDT.py`
 
 Make jet-style heatmap (or you can select another cmap from matplotlib).
